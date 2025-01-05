@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: gateway
+  cloud:
+    consul:
+      host: localhost
+      port: 8500
+      discovery:
+        service-name: ${spring.application.name}
+        health-check-path: /actuator/health
+        health-check-interval: 10s
+      config:
+        enabled: false
+        format: yaml
+        default-context: application
+        profile-separator: "-"
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+        
+server:
+  port: 8888
+
+

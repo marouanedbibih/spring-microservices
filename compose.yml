@@ -1,0 +1,88 @@
+services:
+  # MySQL service
+  mysql:
+    image: mysql:latest
+    container_name: ace_consul_mysql_container
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: database
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    volumes:
+      - ace_consul_mysql_data:/var/lib/mysql
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3307:3306"
+    networks:
+      - ace-consul-net
+  # Consul
+  consul:
+    container_name: ace_consul
+    image: consul:1.15.4
+    command: agent -server -bootstrap-expect=1 -ui -client=0.0.0.0
+    ports:
+      - "8500:8500" # Consul HTTP API and Web UI
+      - "8600:8600/udp" # Consul DNS
+    environment:
+      CONSUL_BIND_INTERFACE: eth0
+    volumes:
+      - consul-data:/consul/data
+    networks:
+      - ace-consul-net
+    restart: unless-stopped
+  # Client service
+  client-service:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: ace_consul_client_service
+    ports:
+      - "8801:8801"
+    networks:
+      - ace-consul-net
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - mysql
+      - consul
+  # Car service
+  car-service:
+    build:
+      context: ./car
+      dockerfile: Dockerfile
+    container_name: ace_consul_car_service
+    ports:
+      - "8802:8802"
+    networks:
+      - ace-consul-net
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - mysql
+      - consul
+  # Gateway service
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: ace_consul_gateway_service
+    ports:
+      - "8888:8888"
+    networks:
+      - ace-consul-net
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - consul
+      - client-service
+      - car-service
+
+# Volume for MySQL data
+volumes:
+  ace_consul_mysql_data:
+  consul-data:
+
+# Network for MySQL and Spring Boot
+networks:
+  ace-consul-net:
+    driver: bridge
