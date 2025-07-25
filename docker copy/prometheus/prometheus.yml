@@ -1,0 +1,30 @@
+global:
+  scrape_interval: 2s
+  evaluation_interval: 2s
+
+scrape_configs:
+  # Prometheus
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['prometheus:9090']
+  # API Gateway
+  - job_name: 'api-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['172.17.0.1:8888'] ## only for demo purposes don't use http://172.17.0.1/ in production
+        labels:
+          application: 'API Gateway'
+  # Client Service
+  - job_name: 'client-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['172.17.0.1:8801'] ## only for demo purposes don't use http://172.17.0.1/ in production
+        labels:
+          application: 'Client Service'
+  # Car Service
+  - job_name: 'car-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['172.17.0.1:8802'] ## only for demo purposes don't use host.docker.internal in production
+        labels:
+          application: 'Car Service'

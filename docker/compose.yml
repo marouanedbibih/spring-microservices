@@ -1,0 +1,84 @@
+# ace_ms_cnsl_fng: ACE Microservices with Consul and Feign
+services:
+  # MySQL service
+  mysql:
+    image: mysql:latest
+    container_name: ace_ms_cnsl_fng_mysql_cntr
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: database
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    volumes:
+      - ace_ms_cnsl_fng_mysql:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3307:3306"
+    networks:
+      - ace-ms-cnsl-fng-net
+  # Consul
+  consul:
+    container_name: ace_ms_cnsl_fng_consul_cntr
+    image: consul:1.15.4
+    command: agent -server -bootstrap-expect=1 -ui -client=0.0.0.0
+    ports:
+      - "8500:8500" # Consul HTTP API and Web UI
+      - "8600:8600/udp" # Consul DNS
+    environment:
+      CONSUL_BIND_INTERFACE: eth0
+    volumes:
+      - ace_ms_cnsl_fng_consul:/consul/data
+    networks:
+      - ace-ms-cnsl-fng-net
+    restart: unless-stopped
+  # Client service
+  client-service:
+    image: marouanedbibih/ace-client-ms:consul-feign
+    container_name: ace_ms_cnsl_fng_client_service
+    ports:
+      - "8801:8801"
+    networks:
+      - ace-ms-cnsl-fng-net
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - mysql
+      - consul
+  # Car service
+  car-service:
+    image: marouanedbibih/ace-car-ms:consul-feign
+    container_name: ace_ms_cnsl_fng_car_service
+    ports:
+      - "8802:8802"
+    networks:
+      - ace-ms-cnsl-fng-net
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - mysql
+      - consul
+  # Gateway service
+  gateway:
+    image: marouanedbibih/ace-gateway-ms:consul-feign
+    container_name: ace_ms_cnsl_fng_gateway_service
+    ports:
+      - "8888:8888"
+    networks:
+      - ace-ms-cnsl-fng-net
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    depends_on:
+      - consul
+      - client-service
+      - car-service
+
+# Volume for MySQL data
+volumes:
+  ace_ms_cnsl_fng_mysql:
+  ace_ms_cnsl_fng_consul:
+
+
+# Network for MySQL and Spring Boot
+networks:
+  ace-ms-cnsl-fng-net:
+    driver: bridge
