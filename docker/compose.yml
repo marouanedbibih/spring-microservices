@@ -1,84 +1,120 @@
-# ace_ms_cnsl_fng: ACE Microservices with Consul and Feign
 services:
-  # MySQL service
   mysql:
+    profiles: ["infra", "dev"]
     image: mysql:latest
-    container_name: ace_ms_cnsl_fng_mysql_cntr
+    container_name: devops-ms-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: database
-      MYSQL_USER: user
-      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
-      - ace_ms_cnsl_fng_mysql:/var/lib/mysql
+      - devops-ms-mysql:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      - "3307:3306"
+      - "${MYSQL_PORT}:${MYSQL_INTERNAL_PORT}"
     networks:
-      - ace-ms-cnsl-fng-net
-  # Consul
+      - devops-ms-net
   consul:
-    container_name: ace_ms_cnsl_fng_consul_cntr
+    profiles: ["infra", "dev"]
+    container_name: devops-ms-consul
     image: consul:1.15.4
-    command: agent -server -bootstrap-expect=1 -ui -client=0.0.0.0
+    command: agent -server -bootstrap-expect=1 -ui -client=${CONSUL_CLIENT}
     ports:
-      - "8500:8500" # Consul HTTP API and Web UI
-      - "8600:8600/udp" # Consul DNS
+      - "${CONSUL_HTTP_PORT}:8500"
+      - "${CONSUL_DNS_PORT}:8600/udp"
     environment:
-      CONSUL_BIND_INTERFACE: eth0
+      CONSUL_BIND_INTERFACE: ${CONSUL_BIND_INTERFACE}
+      CONSUL_LOG_LEVEL: ${CONSUL_LOG_LEVEL}
+      CONSUL_NODE_ROLE: ${CONSUL_NODE_ROLE}
+      CONSUL_DATACENTER: ${CONSUL_DATACENTER}
+      CONSUL_ENCRYPT: ${CONSUL_ENCRYPT_KEY}
     volumes:
-      - ace_ms_cnsl_fng_consul:/consul/data
+      - devops-ms-consul:/consul/data
     networks:
-      - ace-ms-cnsl-fng-net
+      - devops-ms-net
     restart: unless-stopped
-  # Client service
   client-service:
-    image: marouanedbibih/ace-client-ms:consul-feign
-    container_name: ace_ms_cnsl_fng_client_service
+    profiles: ["dev"]
+    build:
+      context: ../client
+      dockerfile: Dockerfile
+    container_name: devops-ms-client-service
     ports:
-      - "8801:8801"
+      - "${CLIENT_SERVICE_PORT}:${CLIENT_SERVICE_PORT}"
     networks:
-      - ace-ms-cnsl-fng-net
+      - devops-ms-net
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
+      SPRING_PROFILES_ACTIVE: docker
+      CLIENT_SERVICE_PORT: ${CLIENT_SERVICE_PORT}
+      SPRING_APPLICATION_NAME_CLIENT: ${SPRING_APPLICATION_NAME_CLIENT}
+      MYSQL_HOST: ${MYSQL_HOST}
+      MYSQL_PORT: ${MYSQL_PORT}
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_USERNAME_CLIENT: ${DATABASE_USERNAME_CLIENT}
+      DATABASE_PASSWORD_CLIENT: ${DATABASE_PASSWORD_CLIENT}
+      JPA_HIBERNATE_DDL_AUTO: ${JPA_HIBERNATE_DDL_AUTO}
+      CONSUL_HOST: ${CONSUL_HOST}
+      CONSUL_HTTP_PORT: ${CONSUL_HTTP_PORT}
+      LOGGING_LEVEL_ORG_HIBERNATE_SQL: ${LOGGING_LEVEL_ORG_HIBERNATE_SQL}
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK: ${LOGGING_LEVEL_ORG_SPRINGFRAMEWORK}
     depends_on:
       - mysql
       - consul
-  # Car service
   car-service:
-    image: marouanedbibih/ace-car-ms:consul-feign
-    container_name: ace_ms_cnsl_fng_car_service
+    profiles: ["dev"]
+    build:
+      context: ../car
+      dockerfile: Dockerfile
+    container_name: devops-ms-car-service
     ports:
-      - "8802:8802"
+      - "${CAR_SERVICE_PORT}:${CAR_SERVICE_PORT}"
     networks:
-      - ace-ms-cnsl-fng-net
+      - devops-ms-net
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
+      SPRING_PROFILES_ACTIVE: docker
+      CAR_SERVICE_PORT: ${CAR_SERVICE_PORT}
+      SPRING_APPLICATION_NAME_CAR: ${SPRING_APPLICATION_NAME_CAR}
+      MYSQL_HOST: ${MYSQL_HOST}
+      MYSQL_PORT: ${MYSQL_PORT}
+      DATABASE_NAME_CAR: ${DATABASE_NAME_CAR}
+      DATABASE_USERNAME_CAR: ${DATABASE_USERNAME_CAR}
+      DATABASE_PASSWORD_CAR: ${DATABASE_PASSWORD_CAR}
+      JPA_HIBERNATE_DDL_AUTO: ${JPA_HIBERNATE_DDL_AUTO}
+      CONSUL_HOST: ${CONSUL_HOST}
+      CONSUL_HTTP_PORT: ${CONSUL_HTTP_PORT}
+      LOGGING_LEVEL_ORG_HIBERNATE_SQL: ${LOGGING_LEVEL_ORG_HIBERNATE_SQL}
+      LOGGING_LEVEL_ORG_SPRINGFRAMEWORK: ${LOGGING_LEVEL_ORG_SPRINGFRAMEWORK}
     depends_on:
       - mysql
       - consul
-  # Gateway service
   gateway:
-    image: marouanedbibih/ace-gateway-ms:consul-feign
-    container_name: ace_ms_cnsl_fng_gateway_service
+    profiles: ["infra", "dev"]
+    build:
+      context: ../gateway
+      dockerfile: Dockerfile
+    container_name: devops-ms-gateway-service
     ports:
-      - "8888:8888"
+      - "${GATEWAY_SERVICE_PORT:-8888}:${GATEWAY_SERVICE_PORT:-8888}"
     networks:
-      - ace-ms-cnsl-fng-net
+      - devops-ms-net
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
+      SPRING_PROFILES_ACTIVE: docker
+      GATEWAY_SERVICE_PORT: ${GATEWAY_SERVICE_PORT}
+      SPRING_APPLICATION_NAME_GATEWAY: ${SPRING_APPLICATION_NAME_GATEWAY}
+      CONSUL_HOST: ${CONSUL_HOST}
+      CONSUL_HTTP_PORT: ${CONSUL_HTTP_PORT}
+      GATEWAY_ALLOWED_ORIGINS: ${GATEWAY_ALLOWED_ORIGINS}
+      GATEWAY_ALLOWED_METHODS: ${GATEWAY_ALLOWED_METHODS}
+      GATEWAY_ALLOWED_HEADERS: ${GATEWAY_ALLOWED_HEADERS}
+      GATEWAY_CORS_MAX_AGE: ${GATEWAY_CORS_MAX_AGE}
     depends_on:
       - consul
       - client-service
       - car-service
-
-# Volume for MySQL data
 volumes:
-  ace_ms_cnsl_fng_mysql:
-  ace_ms_cnsl_fng_consul:
-
-
-# Network for MySQL and Spring Boot
+  devops-ms-mysql:
+  devops-ms-consul:
 networks:
-  ace-ms-cnsl-fng-net:
+  devops-ms-net:
     driver: bridge
