@@ -88,8 +88,24 @@ services:
     depends_on:
       - mysql
       - consul
-  gateway:
+  eureka:
     profiles: ["infra", "dev"]
+    build:
+      context: ../eureka
+      dockerfile: Dockerfile
+      target: dev
+    image: devops-ms-eureka:latest
+    container_name: devops-ms-eureka
+    ports:
+      - "${EUREKA_SERVER_PORT}:${EUREKA_SERVER_PORT}"
+    networks:
+      - devops-ms-net
+    environment:
+      EUREKA_APPLICATION_NAME: ${EUREKA_APPLICATION_NAME}
+      EUREKA_SERVER_PORT: ${EUREKA_SERVER_PORT}
+      EUREKA_INSTANCE_HOSTNAME: ${EUREKA_INSTANCE_HOSTNAME}
+  gateway:
+    profiles: ["dev"]
     build:
       context: ../gateway
       dockerfile: Dockerfile
