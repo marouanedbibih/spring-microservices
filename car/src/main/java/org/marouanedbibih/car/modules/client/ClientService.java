@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(name = "client-service")
+@FeignClient(name = "CLIENT-SERVICE")
 public interface ClientService {
     @GetMapping("/api/clients")
     List<ClientDTO> getAll();

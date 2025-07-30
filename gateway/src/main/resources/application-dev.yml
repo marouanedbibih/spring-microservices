@@ -1,19 +1,11 @@
 spring:
+  config:
+    activate:
+      on-profile:
+      - dev
   application:
     name: ${SPRING_APPLICATION_NAME_GATEWAY}
   cloud:
-    consul:
-      host: ${CONSUL_HOST}
-      port: ${CONSUL_HTTP_PORT}
-      discovery:
-        service-name: ${spring.application.name}
-        health-check-path: /actuator/health
-        health-check-interval: 10s
-      config:
-        enabled: false # Disable Consul Config if not using centralized configuration
-        format: yaml
-        default-context: application
-        profile-separator: "-"
     gateway:
       globalcors:
         corsConfigurations:
@@ -32,3 +24,10 @@ management:
 
 server:
   port: ${GATEWAY_SERVICE_PORT}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://${EUREKA_INSTANCE_HOSTNAME}:${EUREKA_SERVER_PORT}/eureka/
+    register-with-eureka: true
+    fetch-registry: true

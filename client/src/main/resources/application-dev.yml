@@ -2,6 +2,10 @@ server:
   port: ${CLIENT_SERVICE_PORT}
 
 spring:
+  config:
+    activate:
+      on-profile:
+      - dev
   application:
     name: ${SPRING_APPLICATION_NAME_CLIENT}
   datasource:
@@ -15,19 +19,6 @@ spring:
     show-sql: true
     database-platform: org.hibernate.dialect.MySQLDialect
 
-  cloud:
-    consul:
-      host: ${CONSUL_HOST}
-      port: ${CONSUL_HTTP_PORT}
-      discovery:
-        service-name: ${spring.application.name}
-        health-check-path: /actuator/health
-        health-check-interval: 10s
-      config:
-        enabled: false
-        format: yaml
-        default-context: application
-        profile-separator: "-"
 management:
   endpoints:
     web:
@@ -38,3 +29,13 @@ logging:
   level:
     org.hibernate.SQL: ${LOGGING_LEVEL_ORG_HIBERNATE_SQL}
     org.springframework: ${LOGGING_LEVEL_ORG_SPRINGFRAMEWORK}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://${EUREKA_INSTANCE_HOSTNAME}:${EUREKA_SERVER_PORT}/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    appname: ${spring.application.name}

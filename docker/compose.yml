@@ -1,3 +1,8 @@
+volumes:
+  devops-ms-mysql:
+networks:
+  devops-ms-net:
+    driver: bridge
 services:
   mysql:
     profiles: ["infra", "dev"]
@@ -15,37 +20,19 @@ services:
       - "${MYSQL_PORT}:${MYSQL_INTERNAL_PORT}"
     networks:
       - devops-ms-net
-  consul:
-    profiles: ["infra", "dev"]
-    container_name: devops-ms-consul
-    image: consul:1.15.4
-    command: agent -server -bootstrap-expect=1 -ui -client=${CONSUL_CLIENT}
-    ports:
-      - "${CONSUL_HTTP_PORT}:8500"
-      - "${CONSUL_DNS_PORT}:8600/udp"
-    environment:
-      CONSUL_BIND_INTERFACE: ${CONSUL_BIND_INTERFACE}
-      CONSUL_LOG_LEVEL: ${CONSUL_LOG_LEVEL}
-      CONSUL_NODE_ROLE: ${CONSUL_NODE_ROLE}
-      CONSUL_DATACENTER: ${CONSUL_DATACENTER}
-      CONSUL_ENCRYPT: ${CONSUL_ENCRYPT_KEY}
-    volumes:
-      - devops-ms-consul:/consul/data
-    networks:
-      - devops-ms-net
-    restart: unless-stopped
   client-service:
     profiles: ["dev"]
     build:
       context: ../client
       dockerfile: Dockerfile
+      target: dev
+    image: devops-ms-client-service:latest
     container_name: devops-ms-client-service
     ports:
       - "${CLIENT_SERVICE_PORT}:${CLIENT_SERVICE_PORT}"
     networks:
       - devops-ms-net
     environment:
-      SPRING_PROFILES_ACTIVE: docker
       CLIENT_SERVICE_PORT: ${CLIENT_SERVICE_PORT}
       SPRING_APPLICATION_NAME_CLIENT: ${SPRING_APPLICATION_NAME_CLIENT}
       MYSQL_HOST: ${MYSQL_HOST}
@@ -54,25 +41,26 @@ services:
       DATABASE_USERNAME_CLIENT: ${DATABASE_USERNAME_CLIENT}
       DATABASE_PASSWORD_CLIENT: ${DATABASE_PASSWORD_CLIENT}
       JPA_HIBERNATE_DDL_AUTO: ${JPA_HIBERNATE_DDL_AUTO}
-      CONSUL_HOST: ${CONSUL_HOST}
-      CONSUL_HTTP_PORT: ${CONSUL_HTTP_PORT}
       LOGGING_LEVEL_ORG_HIBERNATE_SQL: ${LOGGING_LEVEL_ORG_HIBERNATE_SQL}
       LOGGING_LEVEL_ORG_SPRINGFRAMEWORK: ${LOGGING_LEVEL_ORG_SPRINGFRAMEWORK}
+      EUREKA_INSTANCE_HOSTNAME: ${EUREKA_INSTANCE_HOSTNAME}
+      EUREKA_SERVER_PORT: ${EUREKA_SERVER_PORT}
     depends_on:
       - mysql
-      - consul
+      - eureka
   car-service:
     profiles: ["dev"]
     build:
       context: ../car
       dockerfile: Dockerfile
+      target: dev
+    image: devops-ms-car-service:latest
     container_name: devops-ms-car-service
     ports:
       - "${CAR_SERVICE_PORT}:${CAR_SERVICE_PORT}"
     networks:
       - devops-ms-net
     environment:
-      SPRING_PROFILES_ACTIVE: docker
       CAR_SERVICE_PORT: ${CAR_SERVICE_PORT}
       SPRING_APPLICATION_NAME_CAR: ${SPRING_APPLICATION_NAME_CAR}
       MYSQL_HOST: ${MYSQL_HOST}
@@ -81,13 +69,13 @@ services:
       DATABASE_USERNAME_CAR: ${DATABASE_USERNAME_CAR}
       DATABASE_PASSWORD_CAR: ${DATABASE_PASSWORD_CAR}
       JPA_HIBERNATE_DDL_AUTO: ${JPA_HIBERNATE_DDL_AUTO}
-      CONSUL_HOST: ${CONSUL_HOST}
-      CONSUL_HTTP_PORT: ${CONSUL_HTTP_PORT}
       LOGGING_LEVEL_ORG_HIBERNATE_SQL: ${LOGGING_LEVEL_ORG_HIBERNATE_SQL}
       LOGGING_LEVEL_ORG_SPRINGFRAMEWORK: ${LOGGING_LEVEL_ORG_SPRINGFRAMEWORK}
+      EUREKA_INSTANCE_HOSTNAME: ${EUREKA_INSTANCE_HOSTNAME}
+      EUREKA_SERVER_PORT: ${EUREKA_SERVER_PORT}
     depends_on:
       - mysql
-      - consul
+      - eureka
   eureka:
     profiles: ["infra", "dev"]
     build:
@@ -109,28 +97,55 @@ services:
     build:
       context: ../gateway
       dockerfile: Dockerfile
+      target: dev
+    image: devops-ms-gateway-service:latest
     container_name: devops-ms-gateway-service
     ports:
-      - "${GATEWAY_SERVICE_PORT:-8888}:${GATEWAY_SERVICE_PORT:-8888}"
+      - "${GATEWAY_SERVICE_PORT}:${GATEWAY_SERVICE_PORT}"
     networks:
       - devops-ms-net
     environment:
-      SPRING_PROFILES_ACTIVE: docker
       GATEWAY_SERVICE_PORT: ${GATEWAY_SERVICE_PORT}
       SPRING_APPLICATION_NAME_GATEWAY: ${SPRING_APPLICATION_NAME_GATEWAY}
-      CONSUL_HOST: ${CONSUL_HOST}
-      CONSUL_HTTP_PORT: ${CONSUL_HTTP_PORT}
       GATEWAY_ALLOWED_ORIGINS: ${GATEWAY_ALLOWED_ORIGINS}
       GATEWAY_ALLOWED_METHODS: ${GATEWAY_ALLOWED_METHODS}
       GATEWAY_ALLOWED_HEADERS: ${GATEWAY_ALLOWED_HEADERS}
       GATEWAY_CORS_MAX_AGE: ${GATEWAY_CORS_MAX_AGE}
+      EUREKA_INSTANCE_HOSTNAME: ${EUREKA_INSTANCE_HOSTNAME}
+      EUREKA_SERVER_PORT: ${EUREKA_SERVER_PORT}
     depends_on:
-      - consul
       - client-service
       - car-service
-volumes:
-  devops-ms-mysql:
-  devops-ms-consul:
-networks:
-  devops-ms-net:
-    driver: bridge
+      - eureka
+
+  web-dev:
+    profiles: ["dev"]
+    build:
+      context: ../web
+      target: dev
+    image: devop-ms-web:latest
+    container_name: devops-ms-web
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../web:/app
+      - /app/node_modules
+    environment:
+      - VITE_DEV_SERVER=true
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+    networks:
+      - devops-ms-net
+    depends_on:
+      - eureka
+      - gateway
+
+  web-prod:
+    profiles: ['prod']
+    build:
+      context: .
+      target: prod 
+    ports:
+      - "8080:80"
+    environment:
+      - REACT_APP_API_URL=${REACT_APP_API_URL}
+version: "3.9"

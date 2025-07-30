@@ -1,4 +1,8 @@
 spring:
+  config:
+    activate:
+      on-profile:
+      - dev
   application:
     name: ${EUREKA_APPLICATION_NAME}
 
@@ -12,4 +16,4 @@ eureka:
     register-with-eureka: false
     fetch-registry: false
     service-url:
-      defaultZone: http://${EUREKA_INSTANCE_HOSTNAME}:${EUREKA_SERVER_PORT}/eureka/
+      defaultZone: http://${EUREKA_INSTANCE_HOSTNAME}:${server.port}/eureka/

@@ -1,8 +1,6 @@
 // axios.ts
 import axios from 'axios';
-import { env } from '../env';
-
-const api_url = env.API_URL;
+const api_url = window._env_?.REACT_APP_API_URL
 
 // Create an Axios instance
 const axiosInstance = axios.create({
