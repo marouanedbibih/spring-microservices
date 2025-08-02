@@ -4,18 +4,20 @@ set -e
 # -------------------------
 # CONFIGURATION
 # -------------------------
-REGISTRY="marouanedbibih"   # ✅ change this to DockerHub or GitLab registry
-TAG="latest"                                             # you can make this dynamic using TAG=$(date +%Y%m%d%H%M)
+REGISTRY="marouanedbibih"   # ✅ your DockerHub or GitLab registry
+TAG="latest"                # you can make this dynamic with: TAG=$(date +%Y%m%d%H%M)
 
 # -------------------------
 # SERVICES to build
 # -------------------------
-SERVICES=("eureka" "gateway" "car-service" "client-service" "web")
+ALL_SERVICES=("eureka" "gateway" "car-service" "client-service" "web")
 
 # -------------------------
-# Build and push each service
+# FUNCTIONS
 # -------------------------
-for SERVICE in "${SERVICES[@]}"; do
+build_and_push() {
+  local SERVICE=$1
+
   case $SERVICE in
     eureka)
       CONTEXT="eureka/"
@@ -33,10 +35,10 @@ for SERVICE in "${SERVICES[@]}"; do
       CONTEXT="client/"
       DOCKERFILE="Dockerfile"
       ;;
-    # web)
-    #   CONTEXT="web/"
-    #   DOCKERFILE="Dockerfile"
-    #   ;;
+    web)
+      CONTEXT="web/"
+      DOCKERFILE="Dockerfile"
+      ;;
     *)
       echo "❌ Unknown service: $SERVICE"
       exit 1
@@ -52,6 +54,19 @@ for SERVICE in "${SERVICES[@]}"; do
   docker push "${IMAGE_NAME}"
 
   echo "✅ Done with ${SERVICE}."
-done
+}
 
-echo "🎉 All images built and pushed successfully!"
+# -------------------------
+# MAIN LOGIC
+# -------------------------
+if [ "$1" == "all" ] || [ -z "$1" ]; then
+  echo "🔄 Building ALL services..."
+  for SERVICE in "${ALL_SERVICES[@]}"; do
+    build_and_push "$SERVICE"
+  done
+else
+  echo "🎯 Building ONLY service: $1"
+  build_and_push "$1"
+fi
+
+echo "🎉 Build process complete!"
