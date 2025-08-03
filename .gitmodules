@@ -1,3 +1,7 @@
 [submodule "helm"]
 	path = helm
 	url = git@gitlab.com:mar1db-devops-spring-cloud/helm.git
+
+[submodule "helm"]
+	path = helm
+	url = git@github.com:marouanedbibih/spring-microservices-helm.git
