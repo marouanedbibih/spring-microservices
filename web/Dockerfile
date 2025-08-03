@@ -4,14 +4,15 @@
 FROM node:20-alpine AS base
 WORKDIR /app
 COPY package*.json ./
-RUN npm install --legacy-peer-deps
+RUN npm ci --only=production
 
 # --------------------
 # Stage 2: Development
 # --------------------
 FROM base AS dev
-WORKDIR /app
+RUN npm ci
 COPY . .
+EXPOSE 5173
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
 
 # --------------------
@@ -23,23 +24,20 @@ COPY . .
 RUN npm run build
 
 # --------------------
-# Stage 4: Production Runtime
+# Stage 4: Production Runtime - SIMPLIFIED
 # --------------------
 FROM nginx:alpine AS prod
 
 # Copy production build
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Add a template env.js (will be overwritten by entrypoint)
-COPY docker/env.template.js /usr/share/nginx/html/env.js
+# Remove default nginx config (will be replaced by ConfigMap)
+RUN rm /etc/nginx/conf.d/default.conf
 
-# Add custom nginx config (optional but recommended)
-COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
-
-# Add entrypoint to inject env vars at runtime
-COPY docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Create placeholder for env.js (will be replaced by ConfigMap)
+RUN echo 'window._env_ = {};' > /usr/share/nginx/html/env.js
 
 EXPOSE 80
-ENTRYPOINT ["/entrypoint.sh"]
+
+# Use default nginx command (no custom entrypoint needed)
 CMD ["nginx", "-g", "daemon off;"]

@@ -78,10 +78,17 @@ export const ClientProvider: React.FC<{ children: ReactNode }> = ({
     setLoading(true);
     fetchClientsAPI()
       .then((data) => {
-        setClients(data);
+        // Ensure data is an array
+        if (Array.isArray(data)) {
+          setClients(data);
+        } else {
+          console.error("API returned non-array data:", data);
+          setClients([]); // Fallback to empty array
+        }
       })
       .catch((error) => {
         console.error("Error fetching clients:", error);
+        setClients([]); // Reset to empty array on error
       })
       .finally(() => {
         setLoading(false);

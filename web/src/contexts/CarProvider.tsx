@@ -80,10 +80,17 @@ export const CarProvider: React.FC<{ children: ReactNode }> = ({
     setLoading(true);
     fetchCarsAPI()
       .then((data) => {
-        setCars(data);
+        // Ensure data is an array
+        if (Array.isArray(data)) {
+          setCars(data);
+        } else {
+          console.error("API returned non-array data:", data);
+          setCars([]); // Fallback to empty array
+        }
       })
       .catch((error) => {
         console.error("Error fetching cars:", error);
+        setCars([]); // Reset to empty array on error
       })
       .finally(() => {
         setLoading(false);

@@ -14,9 +14,7 @@ import { useCarContext } from "../contexts/CarProvider";
 export function CarTableBody() {
   const headers = ["Marque", "Matricule", "Model", "Client", "Actions"];
 
-  const { setCarId, setDeleteCarId } = useCarContext();
-  const { toggleForm, toggleDeleteModal } = useCarContext();
-  const { cars, loading, fetchCars } = useCarContext();
+  const { setCarId, setDeleteCarId, toggleForm, toggleDeleteModal, cars, loading, fetchCars } = useCarContext();
 
   React.useEffect(() => {
     fetchCars();
@@ -43,20 +41,35 @@ export function CarTableBody() {
   };
 
   return (
-    <CardBody className="px-0 bg-white shadow-lg rounded-lg">
+    <CardBody 
+      className="px-0 bg-white shadow-lg rounded-lg"
+      placeholder={undefined}
+      onPointerEnterCapture={undefined}
+      onPointerLeaveCapture={undefined}
+    >
       {loading && (
         <div className="flex justify-center items-center py-4">
-          <Spinner />
+          <Spinner 
+            onPointerEnterCapture={undefined} 
+            onPointerLeaveCapture={undefined} 
+          />
         </div>
       )}
-      {cars.length === 0 && !loading && (
+      {cars && cars.length === 0 && !loading && (
         <div className="flex justify-center items-center py-4">
-          <Typography variant="h6" color="gray" className="font-normal">
+          <Typography 
+            variant="h6" 
+            color="gray" 
+            className="font-normal"
+            placeholder={undefined}
+            onPointerEnterCapture={undefined}
+            onPointerLeaveCapture={undefined}
+          >
             No data available
           </Typography>
         </div>
       )}
-      {cars.length > 0 && (
+      {cars && cars.length > 0 && Array.isArray(cars) && (
         <table className="w-full min-w-max table-auto text-left">
           <thead>
             <tr>
@@ -69,6 +82,9 @@ export function CarTableBody() {
                     variant="small"
                     color="blue-gray"
                     className="font-normal leading-none opacity-70"
+                    placeholder={undefined}
+                    onPointerEnterCapture={undefined}
+                    onPointerLeaveCapture={undefined}
                   >
                     {head}
                   </Typography>
@@ -90,6 +106,9 @@ export function CarTableBody() {
                       variant="small"
                       color="blue-gray"
                       className="font-normal"
+                      placeholder={undefined}
+                      onPointerEnterCapture={undefined}
+                      onPointerLeaveCapture={undefined}
                     >
                       {car.marque}
                     </Typography>
@@ -99,6 +118,9 @@ export function CarTableBody() {
                       variant="small"
                       color="blue-gray"
                       className="font-normal"
+                      placeholder={undefined}
+                      onPointerEnterCapture={undefined}
+                      onPointerLeaveCapture={undefined}
                     >
                       {car.matricule}
                     </Typography>
@@ -108,6 +130,9 @@ export function CarTableBody() {
                       variant="small"
                       color="blue-gray"
                       className="font-normal"
+                      placeholder={undefined}
+                      onPointerEnterCapture={undefined}
+                      onPointerLeaveCapture={undefined}
                     >
                       {car.model}
                     </Typography>
@@ -117,6 +142,9 @@ export function CarTableBody() {
                       variant="small"
                       color="blue-gray"
                       className="font-normal"
+                      placeholder={undefined}
+                      onPointerEnterCapture={undefined}
+                      onPointerLeaveCapture={undefined}
                     >
                       {car.client.name}
                     </Typography>
@@ -127,6 +155,9 @@ export function CarTableBody() {
                         <IconButton
                           variant="text"
                           onClick={() => viewCar(car.id)}
+                          placeholder={undefined}
+                          onPointerEnterCapture={undefined}
+                          onPointerLeaveCapture={undefined}
                         >
                           <EyeIcon className="h-4 w-4 text-blue-500" />
                         </IconButton>
@@ -135,6 +166,9 @@ export function CarTableBody() {
                         <IconButton
                           variant="text"
                           onClick={() => editCar(car.id)}
+                          placeholder={undefined}
+                          onPointerEnterCapture={undefined}
+                          onPointerLeaveCapture={undefined}
                         >
                           <PencilIcon className="h-4 w-4 text-green-500" />
                         </IconButton>
@@ -143,6 +177,9 @@ export function CarTableBody() {
                         <IconButton
                           variant="text"
                           onClick={() => deleteCar(car.id)}
+                          placeholder={undefined}
+                          onPointerEnterCapture={undefined}
+                          onPointerLeaveCapture={undefined}
                         >
                           <TrashIcon className="h-4 w-4 text-red-500" />
                         </IconButton>

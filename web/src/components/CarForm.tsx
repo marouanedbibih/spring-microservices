@@ -37,9 +37,16 @@ export function CarForm() {
   const fetchClients = async () => {
     try {
       const clientsData = await fetchClientsAPI();
-      setClients(clientsData);
+      // Ensure data is an array
+      if (Array.isArray(clientsData)) {
+        setClients(clientsData);
+      } else {
+        console.error("API returned non-array data:", clientsData);
+        setClients([]); // Fallback to empty array
+      }
     } catch (error) {
       console.error("Error fetching clients:", error);
+      setClients([]); // Fallback to empty array on error
     }
   };
 
@@ -188,7 +195,7 @@ export function CarForm() {
                       setRequest({ ...request, clientId: value ? parseInt(value, 10) : null });
                     }}
                   >
-                    {clients.map((client) => (
+                    {Array.isArray(clients) && clients.map((client) => (
                       <Option key={client.id} value={client.id.toString()}>
                         {client.name} {/* You can adjust this to show any identifier */}
                       </Option>

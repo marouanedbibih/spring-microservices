@@ -14,9 +14,7 @@ import { useClientContext } from "../contexts/ClientProvider";
 export function ClientTableBody() {
   const headers = ["Name", "Age", "Actions"];
 
-  const { setClientId, setDeleteClientId } = useClientContext();
-  const { toggleForm, toggleDeleteModal } = useClientContext();
-  const { clients, loading, fetchClients } = useClientContext();
+  const { setClientId, setDeleteClientId, toggleForm, toggleDeleteModal, clients, loading, fetchClients } = useClientContext();
 
   React.useEffect(() => {
     fetchClients();
@@ -43,20 +41,35 @@ export function ClientTableBody() {
   };
 
   return (
-    <CardBody className="px-0 bg-white shadow-lg rounded-lg">
+    <CardBody 
+      className="px-0 bg-white shadow-lg rounded-lg"
+      placeholder={undefined}
+      onPointerEnterCapture={undefined}
+      onPointerLeaveCapture={undefined}
+    >
       {loading && (
         <div className="flex justify-center items-center py-4">
-          <Spinner />
+          <Spinner 
+            onPointerEnterCapture={undefined}
+            onPointerLeaveCapture={undefined}
+          />
         </div>
       )}
-      {clients.length === 0 && !loading && (
+      {clients && clients.length === 0 && !loading && (
         <div className="flex justify-center items-center py-4">
-          <Typography variant="h6" color="gray" className="font-normal">
+          <Typography 
+            variant="h6" 
+            color="gray" 
+            className="font-normal"
+            placeholder={undefined}
+            onPointerEnterCapture={undefined}
+            onPointerLeaveCapture={undefined}
+          >
             No data available
           </Typography>
         </div>
       )}
-      {clients.length > 0 && (
+      {clients && clients.length > 0 && Array.isArray(clients) && (
         <table className="w-full min-w-max table-auto text-left">
           <thead>
             <tr>
@@ -69,6 +82,9 @@ export function ClientTableBody() {
                     variant="small"
                     color="blue-gray"
                     className="font-normal leading-none opacity-70"
+                    placeholder={undefined}
+                    onPointerEnterCapture={undefined}
+                    onPointerLeaveCapture={undefined}
                   >
                     {head}
                   </Typography>
@@ -90,6 +106,9 @@ export function ClientTableBody() {
                       variant="small"
                       color="blue-gray"
                       className="font-normal"
+                      placeholder={undefined}
+                      onPointerEnterCapture={undefined}
+                      onPointerLeaveCapture={undefined}
                     >
                       {client.name}
                     </Typography>
@@ -99,6 +118,9 @@ export function ClientTableBody() {
                       variant="small"
                       color="blue-gray"
                       className="font-normal"
+                      placeholder={undefined}
+                      onPointerEnterCapture={undefined}
+                      onPointerLeaveCapture={undefined}
                     >
                       {client.age}
                     </Typography>
@@ -109,6 +131,9 @@ export function ClientTableBody() {
                         <IconButton
                           variant="text"
                           onClick={() => viewClient(client.id)}
+                          placeholder={undefined}
+                          onPointerEnterCapture={undefined}
+                          onPointerLeaveCapture={undefined}
                         >
                           <EyeIcon className="h-4 w-4 text-blue-500" />
                         </IconButton>
@@ -117,6 +142,9 @@ export function ClientTableBody() {
                         <IconButton
                           variant="text"
                           onClick={() => editClient(client.id)}
+                          placeholder={undefined}
+                          onPointerEnterCapture={undefined}
+                          onPointerLeaveCapture={undefined}
                         >
                           <PencilIcon className="h-4 w-4 text-green-500" />
                         </IconButton>
@@ -125,6 +153,9 @@ export function ClientTableBody() {
                         <IconButton
                           variant="text"
                           onClick={() => deleteClient(client.id)}
+                          placeholder={undefined}
+                          onPointerEnterCapture={undefined}
+                          onPointerLeaveCapture={undefined}
                         >
                           <TrashIcon className="h-4 w-4 text-red-500" />
                         </IconButton>
