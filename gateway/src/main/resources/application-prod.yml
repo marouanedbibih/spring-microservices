@@ -1,0 +1,54 @@
+server:
+  port: ${GATEWAY_SERVICE_PORT}
+
+spring:
+  config:
+    activate:
+      on-profile:
+      - prod
+  application:
+    name: ${SPRING_APPLICATION_NAME_GATEWAY}
+  cloud:
+    gateway:
+      globalcors:
+        corsConfigurations:
+          "[/**]":
+            allowed-origins: "${GATEWAY_ALLOWED_ORIGINS}"
+            allowed-methods: "${GATEWAY_ALLOWED_METHODS}"
+            allowed-headers: "${GATEWAY_ALLOWED_HEADERS}"
+            allow-credentials: true
+            max-age: ${GATEWAY_CORS_MAX_AGE}
+      routes:
+        - id: client-service
+          uri: lb://client-service
+          predicates:
+            - Path=/api/clients/**
+          filters:
+            - StripPrefix=2
+        - id: car-service
+          uri: lb://car-service
+          predicates:
+            - Path=/api/cars/**
+          filters:
+            - StripPrefix=2
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+
+logging:
+  level:
+    org.springframework.cloud.gateway: ${LOGGING_LEVEL_GATEWAY:INFO}
+    org.springframework: ${LOGGING_LEVEL_ORG_SPRINGFRAMEWORK:INFO}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    appname: ${spring.application.name}
