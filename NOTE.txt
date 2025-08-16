@@ -1,1 +1,0 @@
-kubectl create secret docker-registry harbor-robot-cred --docker-server=harbor.dbibih.com --docker-username="robot\$kubernetes" --docker-password="8ygD8YaT8YxpiTvRi5ohTDbs5av5nafl" --docker-email=marrouane.dbibih@gmail.com -n dev
