@@ -12,12 +12,12 @@ pipeline {
   }
 
   parameters {
-    string(name: 'REPO_URL',   defaultValue: 'https://gitlab.com/mar1db-spring/client', description: 'Git repo URL')
+    string(name: 'REPO_URL',   defaultValue: 'https://gitlab.com/mar1db-spring/car-microservice', description: 'Git repo URL')
     string(name: 'BRANCH',     defaultValue: 'main', description: 'Git branch')
     string(name: 'SERVICE_DIR',defaultValue: '.', description: 'Path to service in repo')
     string(name: 'REGISTRY',   defaultValue: 'harbor.dbibih.com', description: 'OCI registry host')
     string(name: 'PROJECT',    defaultValue: 'spring', description: 'Harbor project/namespace')
-    string(name: 'IMAGE_REPO', defaultValue: 'client-microservice', description: 'Image repository name')
+    string(name: 'IMAGE_REPO', defaultValue: 'car-microservice', description: 'Image repository name')
     string(name: 'DOCKER_CREDS_ID', defaultValue: 'harbor', description: 'Jenkins creds ID for Harbor')
     string(name: 'APP_VERSION', defaultValue: 'v1.0.0', description: 'SemVer app version (e.g., v1.0.0)')
   }
