@@ -29,6 +29,7 @@ pipeline {
 
   environment {
     DOCKER_HOST = 'tcp://localhost:2375'
+    REGISTRY_IMG  = "${params.REGISTRY}/${params.PROJECT}/${params.IMAGE_REPO}"
   }
 
   stages {
@@ -46,13 +47,13 @@ pipeline {
       }
     }
 
-    stage('Build') {
+    stage('Build JAR') {
       steps {
         mvnBuild(params.SERVICE_DIR, 'clean package -DskipTests')
       }
     }
 
-    stage('Test') {
+    stage('JUnit 5Test') {
       steps {
         runMvnTests(params.SERVICE_DIR)
       }
@@ -64,27 +65,38 @@ pipeline {
       }
     }
 
-    stage('Docker Build & Push') {
+    stage('Trivy FS Scan') {
+      steps {
+        container('trivy') {
+          script {
+            sh '''
+              set -euo pipefail
+              echo "Running Trivy FS scan on source code..."
+              trivy fs --exit-code 0 --severity HIGH,CRITICAL ${SERVICE_DIR}
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Docker Build') {
       environment {
         REGISTRY_IMG = "${params.REGISTRY}/${params.PROJECT}/${params.IMAGE_REPO}"
       }
       steps {
         script {
-          // short git SHA from the service dir
           def GIT_SHA = sh(script: "git -C '${params.SERVICE_DIR}' rev-parse --short HEAD", returnStdout: true).trim()
 
-          // Desired human-friendly form (SemVer build metadata style)
           def humanTag = "${params.APP_VERSION}+${GIT_SHA}-${env.BUILD_NUMBER}"
 
-          // Docker-valid tag (no '+', only [A-Za-z0-9_.-], max 128 chars)
           def sanitize = { s ->
-            def t = s.trim().replaceAll('[^A-Za-z0-9_.-]', '-')     // replace invalid chars
-            if (t.length() > 128) { t = t.substring(0, 128) }        // enforce length
-            if (!t.matches('^[A-Za-z0-9_].*')) { t = "b-${t}" }      // ensure valid first char
+            def t = s.trim().replaceAll('[^A-Za-z0-9_.-]', '-')
+            if (t.length() > 128) { t = t.substring(0, 128) }
+            if (!t.matches('^[A-Za-z0-9_].*')) { t = "b-${t}" }
             return t
           }
-          def VERSION_TAG = sanitize(params.APP_VERSION)             // e.g., v2.0.0
-          def BUILD_TAG   = sanitize("${params.APP_VERSION}-${GIT_SHA}-b${env.BUILD_NUMBER}") // e.g., v2.0.0-abcdef-b12
+          def VERSION_TAG = sanitize(params.APP_VERSION)
+          def BUILD_TAG   = sanitize("${params.APP_VERSION}-${GIT_SHA}-b${env.BUILD_NUMBER}")
 
           echo "Image base:   ${env.REGISTRY_IMG}"
           echo "Human tag:    ${humanTag}"
@@ -99,37 +111,70 @@ pipeline {
                 "VERSION_TAG=${VERSION_TAG}",
                 "BUILD_TAG=${BUILD_TAG}"
               ]) {
-                sh '''
+                sh """
                   set -euo pipefail
-
-                  # Build context is SERVICE_DIR; Dockerfile inside SERVICE_DIR/docker/Dockerfile
+                  cp ${params.SERVICE_DIR}/target/*.jar ./app.jar
                   docker build \
                     -t "${REGISTRY_IMG}:${BUILD_TAG}" \
                     -t "${REGISTRY_IMG}:${VERSION_TAG}" \
                     -t "${REGISTRY_IMG}:latest" \
                     -f "Dockerfile" \
                     .
-
-                  docker push "${REGISTRY_IMG}:${BUILD_TAG}"
-                  docker push "${REGISTRY_IMG}:${VERSION_TAG}"
-                  docker push "${REGISTRY_IMG}:latest"
-                '''
+                """
               }
             }
           }
 
-          echo "Pushed:"
-          echo " - ${env.REGISTRY_IMG}:${BUILD_TAG}"
-          echo " - ${env.REGISTRY_IMG}:${VERSION_TAG}"
-          echo " - ${env.REGISTRY_IMG}:latest"
+          env.VERSION_TAG = VERSION_TAG
+          env.BUILD_TAG   = BUILD_TAG
         }
       }
     }
-  }  // <-- This was the missing closing brace for the stages block
 
-  post {
-    always {
-      echo "Build #${env.BUILD_NUMBER} finished with status: ${currentBuild.currentResult}"
+    stage('Trivy Image Scan') {
+      steps {
+        container('trivy') {
+          script {
+            sh '''
+              echo "Running Trivy scan on built image..."
+              trivy image --exit-code 0 --severity HIGH,CRITICAL "${REGISTRY_IMG}:${BUILD_TAG}"
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Docker Push') {
+      steps {
+        container('docker') {
+          withDockerLogin(params.DOCKER_CREDS_ID, params.REGISTRY) {
+            sh '''
+              docker push "${REGISTRY_IMG}:${BUILD_TAG}"
+              docker push "${REGISTRY_IMG}:${VERSION_TAG}"
+              docker push "${REGISTRY_IMG}:latest"
+            '''
+          }
+        }
+      }
     }
   }
+
+post {
+  always {
+    script {
+      def buildStatus = currentBuild.currentResult
+      mail(
+        to: 'marrouane.dbibih@gmail.com',
+        subject: "${buildStatus}: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+        body: """
+          Build Status: ${buildStatus}
+          Job: ${env.JOB_NAME}
+          Build Number: ${env.BUILD_NUMBER}
+          URL: ${env.BUILD_URL}
+          Image: ${env.REGISTRY_IMG}:${env.BUILD_TAG}
+        """
+      )
+    }
+  }
+}
 }
